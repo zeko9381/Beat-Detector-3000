@@ -2,11 +2,15 @@
 #define LOG_OUT 1 // use the log output function
 #define FHT_N 128 // amount of bins to use
 #include <FHT.h> // include the library
+#include <FastLED.h>
 
 #define FreqLog // use log scale for FHT frequencies
 #define FreqGainFactorBits 0
 #define FreqSerialBinary
 #define VolumeGainFactorBits 0
+#define NUM_LEDS 27
+
+CRGB leds[NUM_LEDS];
 
 // Macros for faster sampling, see
 // http://yaab-arduino.blogspot.co.il/2015/02/fast-sampling-from-analog-input.html
@@ -22,17 +26,17 @@ const bool LOG_FREQUENCY_DATA = false;
 const bool PERFORM_BEAT_DETECTION = false;
 
 const int SOUND_REFERENCE_PIN = 8; // D8
-const int HAT_LIGHTS_PIN = 9; // D9
+const int HAT_LIGHTS_PIN = 2; // D2
 const int HAT_LIGHTS_LOW_PIN = 11; // D11
 const int HAT_LIGHTS_HIGH_PIN = 12; // D12
 const int HAT_LIGHTS_PULSE_PIN = 13; // D13
 
-const int LIGHT_PULSE_DELAY = 10000;
+const int LIGHT_PULSE_DELAY = 1000;
 const int LIGHT_PULSE_DURATION = 2000;
 
-const int LIGHT_FADE_OUT_DURATION = 500; // good value range is [100:1000]
-const float MINIMUM_LIGHT_INTENSITY = 0.01; // in range [0:1]
-const float MAXIMUM_LIGHT_INTENSITY = 0.2; // in range [0:1]
+const int LIGHT_FADE_OUT_DURATION = 300; // good value range is [100:1000]
+const float MINIMUM_LIGHT_INTENSITY = 0.05; // in range [0:1]
+const float MAXIMUM_LIGHT_INTENSITY = 1; // in range [0:1]
 
 const int MAXIMUM_SIGNAL_VALUE = 1024;
 
@@ -95,13 +99,13 @@ void setup() {
   setupADC();
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(HAT_LIGHTS_PIN, OUTPUT);
+  //pinMode(HAT_LIGHTS_PIN, OUTPUT);
   pinMode(HAT_LIGHTS_LOW_PIN, OUTPUT);
   pinMode(HAT_LIGHTS_HIGH_PIN, OUTPUT);
   pinMode(HAT_LIGHTS_PULSE_PIN, OUTPUT);
   pinMode(SOUND_REFERENCE_PIN, OUTPUT);
   
-  digitalWrite(HAT_LIGHTS_PIN, HIGH);
+  //digitalWrite(HAT_LIGHTS_PIN, HIGH);
   digitalWrite(SOUND_REFERENCE_PIN, HIGH);
   
   analogWrite(HAT_LIGHTS_LOW_PIN, 255 * MINIMUM_LIGHT_INTENSITY);
@@ -116,6 +120,28 @@ void setup() {
   
   Serial.begin(115200);
   Serial.println("Starting Festival Hat Controller");
+
+  FastLED.addLeds<WS2812, HAT_LIGHTS_PIN, GRB>(leds, NUM_LEDS);
+
+  // Boot animacija
+  for(int i = 0; i < NUM_LEDS; i++) {
+    for(int j = 0; j < 256; j += 5) {
+      leds[i] = CHSV(0, 0, j);
+      FastLED.show();
+      delay(1);
+    }
+    //delay(100);
+  }
+  
+  for(int i = 255; i >= 0; i--) {
+    for(int j = 0; j < NUM_LEDS; j++) {
+      leds[j] = CHSV(0, 0, i);
+    }
+    FastLED.show();
+    delay(5);
+  }
+
+  delay(2000);
 }
 
 /**
@@ -540,9 +566,21 @@ void updateLights() {
   
   // scale the intensity to be in range of maximum and minimum
   float scaledLightIntensity = MINIMUM_LIGHT_INTENSITY + (lightIntensityValue * (MAXIMUM_LIGHT_INTENSITY - MINIMUM_LIGHT_INTENSITY));
-  
+
   int pinValue = 255 * scaledLightIntensity;
-  analogWrite(HAT_LIGHTS_PIN, pinValue);
+  //analogWrite(HAT_LIGHTS_PIN, pinValue);
+  
+  int hue = 255;
+  int sat = 255;
+  for(int i = 0; i < NUM_LEDS; i++){
+    if(i < 9){
+      leds[i] = CHSV(hue, 255, constrain(pinValue / 5, 20, 255));
+    }else{
+      leds[i] = CHSV(hue, 255 - pinValue, 255);
+    }
+    
+  }
+  FastLED.show();
   
   // also use the builtin LED, for debugging when no lights are connected
   if (scaledLightIntensity > MAXIMUM_LIGHT_INTENSITY - ((MAXIMUM_LIGHT_INTENSITY - MINIMUM_LIGHT_INTENSITY) / 4)) {
