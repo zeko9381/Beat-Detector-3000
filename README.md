@@ -1,3 +1,10 @@
+# VIN projekt
+Ta projekt je bil ustvarjen v sklopu predmeta Vhodno-izhodne naprave na Fakulteti za računalništvo in informatiko v Ljubljani.
+
+Ta "fork" doda podporo za WS2812B RGB lučke in še par drugih stvari.
+
+Spodaj je še README originalnega projekta.
+
 Micro Beat Detection
 ====================
 
